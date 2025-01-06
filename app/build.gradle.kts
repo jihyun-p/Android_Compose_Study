@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.jihyun.compose_study"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.jihyun.compose_study"
@@ -66,4 +66,28 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // 기본 Compose 라이브러리
+    implementation("androidx.core:core-ktx:1.10.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
+    implementation("androidx.activity:activity-compose:1.7.2")
+
+    // Retrofit for API 통신
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Coil for 이미지 로딩
+    implementation("io.coil-kt:coil-compose:2.2.2")
+
+    // Media3 ExoPlayer for 동영상 재생
+    implementation("androidx.media3:media3-exoplayer:1.0.2")
+    implementation("androidx.media3:media3-ui:1.0.2")
+
+    // YouTube Player API (Optional)
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.0.0")
+
+    // 테스트 의존성
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
