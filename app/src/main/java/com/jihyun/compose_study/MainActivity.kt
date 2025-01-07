@@ -10,7 +10,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,43 +17,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
+import com.jihyun.compose_study.database.DatabaseProvider
+import com.jihyun.compose_study.model.Bookmark
+import com.jihyun.compose_study.ui.navigation.ViewPagerScreen
+import com.jihyun.compose_study.viewmodel.BookmarkViewModel
+import com.jihyun.compose_study.viewmodel.BookmarkViewModelFactory
 import com.jihyun.compose_study.viewmodel.MediaViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ViewModels 초기화
         val mediaViewModel: MediaViewModel by viewModels()
 
+        // Room 데이터베이스 초기화
+        val database = DatabaseProvider.getDatabase(applicationContext)
+
+        val bookmarkViewModel: BookmarkViewModel by viewModels {
+            BookmarkViewModelFactory(database.bookmarkDao())
+        }
+
         setContent {
-            MediaListScreen(mediaViewModel)
+            MediaListScreen(mediaViewModel, bookmarkViewModel)
+            ViewPagerScreen(bookmarkViewModel) // ViewPager2 연결
         }
     }
 }
 
 @Composable
-fun MediaListScreen(mediaViewModel: MediaViewModel) {
+fun MediaListScreen(mediaViewModel: MediaViewModel, bookmarkViewModel: BookmarkViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 16.dp)
     ) {
-        // 검색 바 추가
         SearchBar { query ->
-            mediaViewModel.fetchMedia(query) // 이미지 검색
-            mediaViewModel.fetchVideos(query) // 동영상 검색
+            mediaViewModel.fetchMedia(query)
+            mediaViewModel.fetchVideos(query)
         }
 
-        // 이미지와 동영상 데이터를 관찰
         val imageItems by mediaViewModel.imageItems.collectAsState()
         val videoItems by mediaViewModel.videoItems.collectAsState()
 
-        // 로딩 중 상태 처리
         if (imageItems.isNullOrEmpty() && videoItems.isNullOrEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -64,32 +72,43 @@ fun MediaListScreen(mediaViewModel: MediaViewModel) {
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                // 이미지 출력
                 imageItems?.let { items ->
                     items(items.size) { index ->
                         val item = items[index]
                         MediaItemView(
                             thumbnailUrl = item.thumbnail_url,
-                            displaySite = item.display_sitename ?: "출처 없음"
+                            displaySite = item.display_sitename ?: "출처 없음",
+                            onBookmarkClick = {
+                                bookmarkViewModel.addBookmark(
+                                    Bookmark(
+                                        id = 0, // Auto-generated
+                                        title = item.display_sitename ?: "제목 없음",
+                                        url = item.thumbnail_url,
+                                        type = "IMAGE"
+                                    )
+                                )
+                            }
                         )
                     }
                 }
 
-                // 동영상 출력
                 videoItems?.let { items ->
                     items(items.size) { index ->
                         val item = items[index]
-                        if (!item.url.isNullOrEmpty()) {
-                            VideoItemView(
-                                videoUrl = item.url,
-                                videoTitle = item.title ?: item.author ?: "출처 없음"
-                            )
-                        } else {
-                            Text(
-                                text = "유효한 동영상 URL이 없습니다.",
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        }
+                        VideoItemView(
+                            videoUrl = item.url,
+                            videoTitle = item.title ?: item.author ?: "출처 없음",
+                            onBookmarkClick = {
+                                bookmarkViewModel.addBookmark(
+                                    Bookmark(
+                                        id = 0,
+                                        title = item.title ?: "제목 없음",
+                                        url = item.url ?: "",
+                                        type = "VIDEO"
+                                    )
+                                )
+                            }
+                        )
                     }
                 }
             }
@@ -98,7 +117,11 @@ fun MediaListScreen(mediaViewModel: MediaViewModel) {
 }
 
 @Composable
-fun MediaItemView(thumbnailUrl: String, displaySite: String) {
+fun MediaItemView(
+    thumbnailUrl: String,
+    displaySite: String,
+    onBookmarkClick: () -> Unit
+) {
     Row(modifier = Modifier.padding(8.dp)) {
         AsyncImage(
             model = thumbnailUrl,
@@ -107,26 +130,28 @@ fun MediaItemView(thumbnailUrl: String, displaySite: String) {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = displaySite)
+        Spacer(modifier = Modifier.width(8.dp))
+        Button(onClick = onBookmarkClick) {
+            Text(text = "북마크")
+        }
     }
 }
 
+
+
 @Composable
-fun VideoItemView(videoUrl: String?, videoTitle: String?) {
+fun VideoItemView(videoUrl: String?, videoTitle: String?, onBookmarkClick: () -> Unit) {
     Column(modifier = Modifier.padding(8.dp)) {
-        val context = LocalContext.current
-        val title = videoTitle ?: "제목 없음" // null 처리
-        var isPlaying by remember { mutableStateOf(false) } // 재생 상태 관리
+        val title = videoTitle ?: "제목 없음"
 
         if (!videoUrl.isNullOrEmpty()) {
-            // YouTubePlayer 초기화
             AndroidView(
                 factory = { context ->
                     com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView(context).apply {
                         addYouTubePlayerListener(object : com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener() {
                             override fun onReady(youTubePlayer: com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer) {
-                                val videoId = videoUrl.substringAfter("v=") // YouTube 동영상 ID 추출
-                                youTubePlayer.cueVideo(videoId, 0f) // 동영상을 준비 상태로 설정
-
+                                val videoId = videoUrl.substringAfter("v=")
+                                youTubePlayer.cueVideo(videoId, 0f)
                             }
                         })
                     }
@@ -135,15 +160,19 @@ fun VideoItemView(videoUrl: String?, videoTitle: String?) {
                     .fillMaxWidth()
                     .height(200.dp)
             )
-
         } else {
             Text("유효한 동영상 URL이 없습니다.")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = title)
+
+        Button(onClick = onBookmarkClick) {
+            Text(text = "북마크 추가")
+        }
     }
 }
+
 
 @Composable
 fun SearchBar(onSearch: (String) -> Unit) {
@@ -162,3 +191,25 @@ fun SearchBar(onSearch: (String) -> Unit) {
         }
     }
 }
+
+@Composable
+fun BookmarkListScreen(bookmarkViewModel: BookmarkViewModel) {
+    val bookmarks by bookmarkViewModel.bookmarks.collectAsState() // Flow를 State로 변환
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(bookmarks.size) { index ->
+            val bookmark = bookmarks[index]
+            Row(modifier = Modifier.padding(8.dp)) {
+                Text(text = bookmark.title)
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    bookmarkViewModel.deleteBookmark(bookmark) // 북마크 삭제
+                }) {
+                    Text(text = "삭제")
+                }
+            }
+        }
+    }
+}
+
+
