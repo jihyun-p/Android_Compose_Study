@@ -20,11 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import com.jihyun.compose_study.database.DatabaseProvider
-import com.jihyun.compose_study.model.Bookmark
-import com.jihyun.compose_study.ui.navigation.ViewPagerScreen
-import com.jihyun.compose_study.viewmodel.BookmarkViewModel
-import com.jihyun.compose_study.viewmodel.BookmarkViewModelFactory
 import com.jihyun.compose_study.viewmodel.MediaViewModel
 
 class MainActivity : ComponentActivity() {
@@ -34,22 +29,14 @@ class MainActivity : ComponentActivity() {
         // ViewModels 초기화
         val mediaViewModel: MediaViewModel by viewModels()
 
-        // Room 데이터베이스 초기화
-        val database = DatabaseProvider.getDatabase(applicationContext)
-
-        val bookmarkViewModel: BookmarkViewModel by viewModels {
-            BookmarkViewModelFactory(database.bookmarkDao())
-        }
-
         setContent {
-            MediaListScreen(mediaViewModel, bookmarkViewModel)
-            ViewPagerScreen(bookmarkViewModel) // ViewPager2 연결
+            MediaListScreen(mediaViewModel)
         }
     }
 }
 
 @Composable
-fun MediaListScreen(mediaViewModel: MediaViewModel, bookmarkViewModel: BookmarkViewModel) {
+fun MediaListScreen(mediaViewModel: MediaViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -77,17 +64,7 @@ fun MediaListScreen(mediaViewModel: MediaViewModel, bookmarkViewModel: BookmarkV
                         val item = items[index]
                         MediaItemView(
                             thumbnailUrl = item.thumbnail_url,
-                            displaySite = item.display_sitename ?: "출처 없음",
-                            onBookmarkClick = {
-                                bookmarkViewModel.addBookmark(
-                                    Bookmark(
-                                        id = 0, // Auto-generated
-                                        title = item.display_sitename ?: "제목 없음",
-                                        url = item.thumbnail_url,
-                                        type = "IMAGE"
-                                    )
-                                )
-                            }
+                            displaySite = item.display_sitename ?: "출처 없음"
                         )
                     }
                 }
@@ -97,17 +74,7 @@ fun MediaListScreen(mediaViewModel: MediaViewModel, bookmarkViewModel: BookmarkV
                         val item = items[index]
                         VideoItemView(
                             videoUrl = item.url,
-                            videoTitle = item.title ?: item.author ?: "출처 없음",
-                            onBookmarkClick = {
-                                bookmarkViewModel.addBookmark(
-                                    Bookmark(
-                                        id = 0,
-                                        title = item.title ?: "제목 없음",
-                                        url = item.url ?: "",
-                                        type = "VIDEO"
-                                    )
-                                )
-                            }
+                            videoTitle = item.title ?: item.author ?: "출처 없음"
                         )
                     }
                 }
@@ -119,8 +86,7 @@ fun MediaListScreen(mediaViewModel: MediaViewModel, bookmarkViewModel: BookmarkV
 @Composable
 fun MediaItemView(
     thumbnailUrl: String,
-    displaySite: String,
-    onBookmarkClick: () -> Unit
+    displaySite: String
 ) {
     Row(modifier = Modifier.padding(8.dp)) {
         AsyncImage(
@@ -130,17 +96,11 @@ fun MediaItemView(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = displaySite)
-        Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onBookmarkClick) {
-            Text(text = "북마크")
-        }
     }
 }
 
-
-
 @Composable
-fun VideoItemView(videoUrl: String?, videoTitle: String?, onBookmarkClick: () -> Unit) {
+fun VideoItemView(videoUrl: String?, videoTitle: String?) {
     Column(modifier = Modifier.padding(8.dp)) {
         val title = videoTitle ?: "제목 없음"
 
@@ -166,13 +126,8 @@ fun VideoItemView(videoUrl: String?, videoTitle: String?, onBookmarkClick: () ->
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = title)
-
-        Button(onClick = onBookmarkClick) {
-            Text(text = "북마크 추가")
-        }
     }
 }
-
 
 @Composable
 fun SearchBar(onSearch: (String) -> Unit) {
@@ -191,25 +146,3 @@ fun SearchBar(onSearch: (String) -> Unit) {
         }
     }
 }
-
-@Composable
-fun BookmarkListScreen(bookmarkViewModel: BookmarkViewModel) {
-    val bookmarks by bookmarkViewModel.bookmarks.collectAsState() // Flow를 State로 변환
-
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(bookmarks.size) { index ->
-            val bookmark = bookmarks[index]
-            Row(modifier = Modifier.padding(8.dp)) {
-                Text(text = bookmark.title)
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = {
-                    bookmarkViewModel.deleteBookmark(bookmark) // 북마크 삭제
-                }) {
-                    Text(text = "삭제")
-                }
-            }
-        }
-    }
-}
-
-
