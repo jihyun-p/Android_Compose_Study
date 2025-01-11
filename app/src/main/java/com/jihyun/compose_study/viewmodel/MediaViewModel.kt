@@ -3,12 +3,10 @@ package com.jihyun.compose_study.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jihyun.compose_study.model.ImageItem
-import com.jihyun.compose_study.model.KakaoResponse
-import com.jihyun.compose_study.model.VideoItem
+import com.jihyun.compose_study.database.entity.ImageItem
+import com.jihyun.compose_study.database.entity.VideoItem
 import com.jihyun.compose_study.network.KakaoApi
 import com.jihyun.compose_study.network.RetrofitClient
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -25,10 +23,7 @@ class MediaViewModel : ViewModel() {
     fun fetchMedia(query: String) {
         viewModelScope.launch {
             try {
-                val response = kakaoApi.searchImages(
-                    apiKey = "KakaoAK 2b56d328031e17245fba10b56f24aa84",
-                    query = query
-                )
+                val response = kakaoApi.searchImages(query = query)
                 _imageItems.value = response.documents // List<ImageItem>
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -42,10 +37,7 @@ class MediaViewModel : ViewModel() {
             try {
                 Log.d("fetchVideos", "API 호출 시작: query=$query") // API 호출 전
 
-                val response = kakaoApi.searchVideos(
-                    apiKey = "KakaoAK 2b56d328031e17245fba10b56f24aa84",
-                    query = query
-                )
+                val response = kakaoApi.searchVideos(query = query)
 
                 Log.d("fetchVideos", "API 응답 수신: $response") // API 응답 확인
 

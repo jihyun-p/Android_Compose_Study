@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.jihyun.compose_study.database.DatabaseProvider
-import com.jihyun.compose_study.model.Bookmark
+import com.jihyun.compose_study.database.entity.Bookmark
 import com.jihyun.compose_study.ui.navigation.ViewPagerScreen
 import com.jihyun.compose_study.viewmodel.BookmarkViewModel
 import com.jihyun.compose_study.viewmodel.BookmarkViewModelFactory
@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MediaListScreen(mediaViewModel, bookmarkViewModel)
-            ViewPagerScreen(bookmarkViewModel) // ViewPager2 연결
+            ViewPagerScreen(mediaViewModel, bookmarkViewModel)
         }
     }
 }

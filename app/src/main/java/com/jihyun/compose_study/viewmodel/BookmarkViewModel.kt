@@ -2,8 +2,8 @@ package com.jihyun.compose_study.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jihyun.compose_study.dao.BookmarkDao
-import com.jihyun.compose_study.model.Bookmark
+import com.jihyun.compose_study.database.dao.BookmarkDao
+import com.jihyun.compose_study.database.entity.Bookmark
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

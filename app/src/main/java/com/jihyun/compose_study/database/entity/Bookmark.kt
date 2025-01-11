@@ -1,4 +1,4 @@
-package com.jihyun.compose_study.model
+package com.jihyun.compose_study.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
